@@ -1,4 +1,4 @@
-﻿public class Post1_01 {
+﻿public class Main {
 
     public static void main(String[] args) {
         Integer inmmutable1 = 10;

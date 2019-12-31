@@ -1,4 +1,4 @@
-public class Post2_01 {
+public class Main {
 
     public static void main(String[] args) {
         Animal dog = new Animal("Coco", "Male");
