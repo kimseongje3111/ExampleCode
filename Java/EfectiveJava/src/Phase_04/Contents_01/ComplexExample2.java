@@ -1,6 +1,6 @@
 package Phase_04.Contents_01;
 
-// 생성자 대신 정적 팩터를 사용한 불변 클래스 (더 유연한 방법)
+// 생성자 대신 정적 팩터리를 사용한 불변 클래스 (더 유연한 방법)
 
 public class ComplexExample2 {
     private final double re;
