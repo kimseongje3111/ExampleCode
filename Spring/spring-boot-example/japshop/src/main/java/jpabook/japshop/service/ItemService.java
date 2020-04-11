@@ -15,7 +15,7 @@ public class ItemService {
 
     private final ItemRepository repository;
 
-    /**
+    /*
      * 상품 등록
      */
     @Transactional
@@ -23,7 +23,7 @@ public class ItemService {
         repository.save(item);
     }
 
-    /**
+    /*
      * 상품 조회
      */
     public List<Item> findItems() {
