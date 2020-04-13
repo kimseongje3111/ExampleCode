@@ -100,12 +100,8 @@ public class OrderServiceTest {
         return new Address(city, street, zipCode);
     }
 
-    private Book createBook(String name, int price, int stockQuantity) {
-        Book book = new Book();
-        book.setName(name);
-        book.setStockQuantity(stockQuantity);
-        book.setPrice(price);
-
+    private Item createBook(String name, int price, int stockQuantity) {
+        Item book = new Book.BookBuilder(name, price, stockQuantity).build();
         em.persist(book);
 
         return book;
