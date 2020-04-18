@@ -2,6 +2,8 @@ package jpabook.jpashop.domain;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "orders")
@@ -12,19 +14,28 @@ public class Order {
     @Column(name = "order_id")
     private Long id;
 
-    @Column(name = "member_id")
-    private Long memberId;
+    @ManyToOne
+    @JoinColumn(name = "member_id")
+    private Member member;
+
+    @OneToMany(mappedBy = "order")
+    private List<OrderItem> orderItems = new ArrayList<>();
 
     /*
-        <문제점 : 테이블 중심 설계>
-        - 참조가 아닌 테이블의 외래키를 객체에 그대로 가져옴
-        - 결과적으로 객체 그래프 탐색이 불가능
+        * 가급적이면 단방향 연관 관계가 좋다.
+        * 연관 관계 주인 (외래키) 설정
      */
 
     private LocalDateTime orderDate;
 
     @Enumerated(value = EnumType.STRING)
     private OrderStatus status;
+
+    // == 연관 관계 편의 메서드 == //
+    public void addOrderItem(OrderItem orderItem) {
+        orderItems.add(orderItem);
+        orderItem.setOrder(this);
+    }
 
     public Long getId() {
         return id;
@@ -34,12 +45,12 @@ public class Order {
         this.id = id;
     }
 
-    public Long getMemberId() {
-        return memberId;
+    public Member getMember() {
+        return member;
     }
 
-    public void setMemberId(Long memberId) {
-        this.memberId = memberId;
+    public void setMember(Member member) {
+        this.member = member;
     }
 
     public LocalDateTime getOrderDate() {
