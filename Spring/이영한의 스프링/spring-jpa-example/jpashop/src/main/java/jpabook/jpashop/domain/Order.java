@@ -26,6 +26,10 @@ public class Order {
         * 연관 관계 주인 (외래키) 설정
      */
 
+    @OneToOne
+    @JoinColumn(name = "delivery_id")
+    private Delivery delivery;
+
     private LocalDateTime orderDate;
 
     @Enumerated(value = EnumType.STRING)
