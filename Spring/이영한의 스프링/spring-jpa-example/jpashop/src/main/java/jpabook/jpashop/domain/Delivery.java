@@ -16,6 +16,9 @@ public class Delivery {
     @Enumerated(value = EnumType.STRING)
     private DeliveryStatus status;
 
+    @OneToOne(mappedBy = "delivery", fetch = FetchType.LAZY)
+    private Order order;
+
     public Long getId() {
         return id;
     }
