@@ -26,7 +26,7 @@ public class MemberApiController {
     @PostMapping(value = "/api/v1/members")
     public CreateMemberResponse saveMemberV1(@RequestBody @Valid Member member) {
         /*
-         * 단점
+         * < 단점 >
          * 엔티티에 화면 또는 API 검증을 위한 로직이 추가된다
          * 엔티티 변경시 API 스펙이 변경되는 결과를 초래한다
          */
@@ -87,8 +87,8 @@ public class MemberApiController {
     @GetMapping(value = "/api/v2/members")
     public Result memberV2() {
         List<Member> findMembers = memberService.findMembers();
-        List<MemberDTO> collect = findMembers.stream()
-                .map(m -> new MemberDTO(m.getName()))
+        List<MemberDto> collect = findMembers.stream()
+                .map(m -> new MemberDto(m.getName()))
                 .collect(Collectors.toList());
 
         return new Result(collect);
@@ -132,7 +132,7 @@ public class MemberApiController {
 
     @Data
     @AllArgsConstructor
-    static class MemberDTO {
+    static class MemberDto {
         private String name;
     }
 }

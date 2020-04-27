@@ -7,6 +7,7 @@ import lombok.Setter;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -62,7 +63,7 @@ public class Order {
         order.setOrderDate(LocalDateTime.now());
         order.setStatus(OrderStatus.ORDER);
 
-        for(OrderItem orderItem : orderItems) {
+        for (OrderItem orderItem : orderItems) {
             order.addOrderItem(orderItem);
         }
 
@@ -80,7 +81,7 @@ public class Order {
 
         this.setStatus(OrderStatus.CANCEL);
 
-        for(OrderItem orderItem : orderItems) {
+        for (OrderItem orderItem : orderItems) {
             orderItem.cancel();
         }
     }

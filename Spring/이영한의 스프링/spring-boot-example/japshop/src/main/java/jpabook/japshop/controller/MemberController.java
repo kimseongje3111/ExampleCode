@@ -3,15 +3,19 @@ package jpabook.japshop.controller;
 import jpabook.japshop.domain.Address;
 import jpabook.japshop.domain.Member;
 import jpabook.japshop.service.MemberService;
-import lombok.RequiredArgsConstructor;
+import lombok.*;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 
+import javax.persistence.Embedded;
 import javax.validation.Valid;
+import javax.validation.constraints.NotEmpty;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Controller
 @RequiredArgsConstructor
@@ -35,7 +39,14 @@ public class MemberController {
 
         member.setName(form.getName());
         member.setAddress(address);
-        memberService.join(member);
+
+        try {
+            memberService.join(member);
+
+        } catch (IllegalStateException e) {
+            result.addError(new FieldError("memberForm", "name", e.getMessage()));
+            return "members/createMemberForm";
+        }
 
         return "redirect:/";
     }
@@ -43,9 +54,32 @@ public class MemberController {
     @GetMapping(value = "/members")
     public String list(Model model) {
         // 엔티티를 직접 사용하기보다 DTO 또는 폼 객체를 사용하여 화면에 전달하자. 특히 API 를 만들때는 엔티티를 외부로 리턴하면 안된다.
-        List<Member> members = memberService.findMembers();
+        List<Member> findMembers = memberService.findMembers();
+        List<MemberDto> members = findMembers.stream().map(m -> new MemberDto(m.getId(), m.getName(), m.getAddress()))
+                .collect(Collectors.toList());
+
         model.addAttribute("members", members);
 
         return "members/memberList";
+    }
+
+    @Data
+    static class MemberForm {
+        @NotEmpty(message = "회원 이름은 필수입니다")
+        private String name;
+
+        private String city;
+        private String street;
+        private String zipCode;
+    }
+
+    @Data
+    @AllArgsConstructor
+    static class MemberDto {
+        private Long id;
+        private String name;
+
+        @Embedded
+        private Address address;
     }
 }
