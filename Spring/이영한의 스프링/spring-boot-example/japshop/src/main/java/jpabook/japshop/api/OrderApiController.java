@@ -6,6 +6,8 @@ import jpabook.japshop.domain.OrderItem;
 import jpabook.japshop.domain.OrderStatus;
 import jpabook.japshop.repository.OrderRepository;
 import jpabook.japshop.repository.OrderSearch;
+import jpabook.japshop.repository.order.query.OrderFlatDto;
+import jpabook.japshop.repository.order.query.OrderItemQueryDto;
 import jpabook.japshop.repository.order.query.OrderQueryDto;
 import jpabook.japshop.repository.order.query.OrderQueryRepository;
 import lombok.Data;
@@ -18,6 +20,8 @@ import javax.persistence.Embedded;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.*;
 
 /**
  * 컬렉션 조회 최적화
@@ -47,7 +51,7 @@ public class OrderApiController {
     public List<OrderDto> ordersV2() {
         List<Order> orders = orderRepository.findAllByString(new OrderSearch());
 
-        return orders.stream().map(OrderDto::new).collect(Collectors.toList());
+        return orders.stream().map(OrderDto::new).collect(toList());
     }
 
     /**
@@ -63,7 +67,7 @@ public class OrderApiController {
     public List<OrderDto> ordersV3() {
         List<Order> orders = orderRepository.findAllWithItem();
 
-        return orders.stream().map(OrderDto::new).collect(Collectors.toList());
+        return orders.stream().map(OrderDto::new).collect(toList());
     }
 
     /**
@@ -80,7 +84,7 @@ public class OrderApiController {
                                           @RequestParam(value = "limit", defaultValue = "100") int limit) {
         List<Order> orders = orderRepository.findAllWithMemberDeliveryByPaging(offset, limit);
 
-        return orders.stream().map(OrderDto::new).collect(Collectors.toList());
+        return orders.stream().map(OrderDto::new).collect(toList());
     }
 
     /**
@@ -104,7 +108,24 @@ public class OrderApiController {
         return orderQueryRepository.findAllByDtoOptimization();
     }
 
+    /**
+     * 주문 조회 V6 (JPA 에서 DTO 직접 조회, 플랫 데이터 최적화)
+     * 단 1 번의 쿼리
+     * 그러나 애플리케이션에서 추가 작업이 크다
+     * 조인으로 인한 중복 데이터, 페이징 불가
+     */
+    @GetMapping(value = "/api/v6/orders")
+    public List<OrderQueryDto> ordersV6() {
+        List<OrderFlatDto> flatData = orderQueryRepository.findAllByDtoFlat();
 
+        return flatData.stream().collect(
+                groupingBy(o -> new OrderQueryDto(o.getOrderId(), o.getName(), o.getOrderDate(), o.getOrderStatus(), o.getAddress()),
+                        mapping(o -> new OrderItemQueryDto(o.getOrderId(), o.getItemName(), o.getOrderPrice(), o.getCount()), toList())))
+                .entrySet()
+                .stream()
+                .map(e -> new OrderQueryDto(e.getKey().getOrderId(), e.getKey().getName(), e.getKey().getOrderDate(), e.getKey().getOrderStatus(), e.getKey().getAddress(), e.getValue()))
+                .collect(toList());
+    }
 
     @Data
     static class OrderDto {
@@ -124,7 +145,7 @@ public class OrderApiController {
             orderDate = order.getOrderDate();
             orderStatus = order.getStatus();
             address = order.getDelivery().getAddress();
-            orderItems = order.getOrderItems().stream().map(OrderItemDto::new).collect(Collectors.toList());
+            orderItems = order.getOrderItems().stream().map(OrderItemDto::new).collect(toList());
         }
     }
 
