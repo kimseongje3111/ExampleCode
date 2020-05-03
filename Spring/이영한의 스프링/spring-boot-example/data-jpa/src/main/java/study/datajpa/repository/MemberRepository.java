@@ -4,16 +4,15 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
-import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 import study.datajpa.domain.Member;
 import study.datajpa.domain.dto.MemberDto;
 
+import javax.persistence.QueryHint;
 import java.util.List;
 
-public interface MemberRepository extends JpaRepository<Member, Long> {
+public interface MemberRepository extends JpaRepository<Member, Long>, MemberRepositoryCustom {
 
     /**
      * < 메서드 이름으로 쿼리 생성 >
@@ -24,7 +23,6 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
 
     /**
      * < JPA NamedQuery >
-     *
      * @Query 생략 가능 : 엔티티에 NamedQuery 먼저 찾고 없으면 메서드 이름으로 쿼리 생성
      */
     @Query(name = "Member.findByUsername")
@@ -51,14 +49,15 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
      * < 페이징, 정렬 >
      * 파라미터로 Pageable 인터페이스 구현체 (PageRequest)를 넘김
      * 반환 타입
-     * 1. Page : 추가 count 쿼리 포함
-     * 2. Slice : 추가 count 쿼리 없이 다음 페이지만 확인 가능, 내부적으로 limit + 1 쿼리를 날림
-     * 3. List : 추가 count 쿼리 없이 결과만 반환
+     1. Page : 추가 count 쿼리 포함
+     2. Slice : 추가 count 쿼리 없이 다음 페이지만 확인 가능, 내부적으로 limit + 1 쿼리를 날림
+     3. List : 추가 count 쿼리 없이 결과만 반환
      */
     Page<Member> findByAge(int age, Pageable pageable);
 
     @Query(value = "select m from Member m join m.team t",
-            countQuery = "select count(m) from Member m")    // count 쿼리 최적화
+            countQuery = "select count(m) from Member m")
+        // count 쿼리 최적화
     Page<Member> findMemberAllCountBy(Pageable pageable);
 
     /**
@@ -71,5 +70,29 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
 
     /**
      * < @EntityGraph >
+     * 페치 조인의 간편 버전
+     * 지연 로딩으로 발생할 수 있는 쿼리 N + 1 문제를 해결하기 위해 페치 조인을 통해 엔티티 그래프 기능(연관된 엔티티 한번에 조회)을 사용
+     * @EntityGraph(attributePaths = {""}) : JPQL 없이 페치 조인 사용 가능
+     * NamedEntityGraph 도 가능
      */
+    @Query("select m from Member m left join fetch m.team")
+    List<Member> findMemberFetchJoin();
+
+    @EntityGraph(attributePaths = {"team"})
+    List<Member> findAll();
+
+    @EntityGraph(attributePaths = {"team"})
+    @Query("select m from Member m")
+    List<Member> findMembersByEntityGraph();
+
+    @EntityGraph(attributePaths = {"team"})
+    List<Member> findByUsernameAndAgeLessThan(@Param("username") String username, @Param("age") int age);
+
+    /**
+     * < JPA Hint >
+     * JPA 구현체(하이버네이트)에게 주는 힌트
+     * ex) 오로지 조회용(ReadOnly)으로 최적화 하기 위해 사용 (변경 감지를 위한 스냅샷 객체 생성 X)
+     */
+    @QueryHints(value = @QueryHint(name = "org.hibernate.readOnly", value = "true"))
+    Member findReadOnlyByUsername(String username);
 }

@@ -11,6 +11,8 @@ import org.springframework.transaction.annotation.Transactional;
 import study.datajpa.domain.Member;
 import study.datajpa.domain.dto.MemberDto;
 
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -26,6 +28,9 @@ class MemberRepositoryTest {
 
     @Autowired
     TeamRepository teamRepository;
+
+    @PersistenceContext
+    EntityManager em;
 
     @Test
     public void paging() {
@@ -66,5 +71,20 @@ class MemberRepositoryTest {
 
         // then
         assertThat(resultCount).isEqualTo(3);
+    }
+
+    @Test
+    public void queryHint() {
+        // given
+        Member member = new Member("member1", 10);
+        memberRepository.save(member);
+        em.flush();
+        em.clear();
+
+        // when
+        Member findMember = memberRepository.findReadOnlyByUsername(member.getUsername());
+        findMember.setUsername("member2");
+
+        em.flush();     // 변경 감지 X, Update 쿼리 X
     }
 }
