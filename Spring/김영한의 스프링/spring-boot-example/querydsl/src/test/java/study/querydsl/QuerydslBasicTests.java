@@ -1,8 +1,12 @@
 package study.querydsl;
 
+import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
-import com.querydsl.jpa.JPAExpressions;
+import com.querydsl.core.types.ExpressionUtils;
+import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -11,8 +15,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 import study.querydsl.domain.Member;
 import study.querydsl.domain.QMember;
-import study.querydsl.domain.QTeam;
 import study.querydsl.domain.Team;
+import study.querydsl.dto.MemberDto;
+import study.querydsl.dto.QMemberDto;
+import study.querydsl.dto.UserDto;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
@@ -328,5 +334,178 @@ public class QuerydslBasicTests {
         assertThat(fetch)
                 .extracting("age")
                 .containsExactly(20, 30, 40);
+    }
+
+    /**
+     * 프로젝션 결과 반환 - DTO
+     * Querydsl 빈 생성
+     * 프로퍼티 접근(Setter), 필드 직접 접근, 생성자 사용
+     */
+    @Test
+    public void findDtoByQuerydsl() throws Exception {
+        // 프로퍼티 접근
+        queryFactory
+                .select(
+                        Projections.bean(
+                                MemberDto.class,
+                                member.username,
+                                member.age)
+                )
+                .from(member)
+                .fetch();
+
+        // 필드 직접 접근
+        queryFactory
+                .select(
+                        Projections.fields(
+                                MemberDto.class,
+                                member.username,
+                                member.age)
+                )
+                .from(member)
+                .fetch();
+
+        // 생성자
+        queryFactory
+                .select(
+                        Projections.constructor(
+                                MemberDto.class,
+                                member.username,
+                                member.age)
+                )
+                .from(member)
+                .fetch();
+    }
+
+    /**
+     * 프로퍼티 또는 필드 접근 생성 방식에서 이름이 다를 때
+     * 별칭 적용
+     */
+    @Test
+    public void findUserDto() throws Exception {
+        // Given
+        QMember memberSub = new QMember("memberSub");
+
+        List<UserDto> fetch = queryFactory
+                .select(
+                        Projections.fields(
+                                UserDto.class,
+                                member.username.as("name"),
+                                ExpressionUtils.as(
+                                        select(memberSub.age.max()).from(memberSub),
+                                        "age"
+                                ))
+                )
+                .from(member)
+                .fetch();
+    }
+
+    /**
+     * 프로젝션과 결과 반환 - @QueryProjection
+     * 생성자 + @QueryProjection
+     */
+    @Test
+    public void findDtoByQueryProjection() throws Exception {
+        // Given
+        List<MemberDto> fetch = queryFactory
+                .select(new QMemberDto(member.username, member.age))
+                .from(member)
+                .fetch();
+    }
+
+    /**
+     * 동적 쿼리 해결 - BooleanBuilder
+     */
+    @Test
+    public void dynamicQuery_BooleanBuilder() throws Exception {
+        // Given
+        String username = "member1";
+        Integer age = null;
+
+        // When
+        List<Member> findMembers = searchMember1(username, age);
+        
+        // then
+        assertThat(findMembers.size()).isEqualTo(1);
+    }
+
+    private List<Member> searchMember1(String usernameCond, Integer ageCond) {
+        BooleanBuilder booleanBuilder = new BooleanBuilder();
+
+        if (usernameCond != null) {
+            booleanBuilder.and(member.username.eq(usernameCond));
+        }
+        
+        if (ageCond != null) {
+            booleanBuilder.and(member.age.eq(ageCond));
+        }
+
+        return queryFactory
+                .selectFrom(member)
+                .where(booleanBuilder)
+                .fetch();
+    }
+
+    /**
+     * 동적 쿼리 해결 - Where 절 다중 파라미터
+     * 재사용성, 컴포지션 가능!
+     */
+    @Test
+    public void dynamicQuery_WhereParam() throws Exception {
+        // Given
+        String username = "member1";
+        Integer age = null;
+
+        // When
+        List<Member> findMembers = searchMember2(username, age);
+
+        // then
+        assertThat(findMembers.size()).isEqualTo(1);
+    }
+
+    private List<Member> searchMember2(String usernameCond, Integer ageCond) {
+        return queryFactory
+                .selectFrom(member)
+                .where(allEq(usernameCond, ageCond))
+                .fetch();
+    }
+
+    private BooleanExpression allEq(String usernameCond, Integer ageCond) {
+        return usernameEq(usernameCond).and(ageEq(ageCond));
+    }
+
+    private BooleanExpression usernameEq(String usernameCond) {
+        return usernameCond != null ? member.username.eq(usernameCond) : null;
+    }
+
+    private BooleanExpression ageEq(Integer ageCond) {
+        return ageCond != null ? member.age.eq(ageCond) : null;
+    }
+
+    /**
+     * 벌크 연산
+     */
+    @Test
+    public void bulkQuery() throws Exception {
+        long count = queryFactory
+                .update(member)
+                .set(member.age, member.age.add(1))
+                .where(member.age.gt(18))
+                .execute();
+    }
+
+    /**
+     * SQL Function
+     */
+    @Test
+    public void callSqlFunction() throws Exception {
+        List<String> fetch = queryFactory
+                .select(
+                        Expressions.stringTemplate(
+                                "function('replace', {0}, {1}, {2})",
+                                member.username, "member", "M")
+                )
+                .from(member)
+                .fetch();
     }
 }
