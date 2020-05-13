@@ -1,0 +1,9 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/studyolle
+    username: seongje
+    password: 52ajrdjdy
+
+  jpa:
+    hibernate:
+      ddl-auto: update
